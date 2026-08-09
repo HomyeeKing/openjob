@@ -1,6 +1,6 @@
 {
   "name": "openjob",
-  "version": "1.1.0",
+  "version": "1.0.10",
   "description": "Out of loop scheduled task system for AI agents",
   "packageManager": "pnpm@10.33.2",
   "files": [
