@@ -144,6 +144,9 @@ The daemon will periodically check and execute due jobs.
 | `openjob daemon start` | Start local jobs daemon |
 | `openjob daemon stop` | Stop local jobs daemon |
 | `openjob daemon status` | Show daemon status |
+| `openjob autostart enable` | Start the daemon automatically on login (macOS LaunchAgent) |
+| `openjob autostart disable` | Remove login autostart |
+| `openjob autostart status` | Show login autostart status |
 | `openjob dashboard` | Open local web dashboard |
 
 ## Job Definition Format

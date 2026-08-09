@@ -8,6 +8,7 @@ import { resolveAgentsDir } from '../src/registry';
 import { parseSource } from '../src/source';
 import { installerInternals } from '../src/installer';
 import { disableKeepAwake, enableKeepAwake, keepAwakeInternals, readKeepAwakeState } from '../src/keepAwake';
+import { autostartInternals, disableAutostart, enableAutostart, readAutostartState } from '../src/autostart';
 
 const tempDirs: string[] = [];
 
@@ -44,6 +45,7 @@ function createTempDir(): string {
 
 afterEach(() => {
   keepAwakeInternals.resetForTests();
+  autostartInternals.resetForTests();
   vi.restoreAllMocks();
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
@@ -170,6 +172,60 @@ describe('keep awake', () => {
     keepAwakeInternals.setProcessExistsForTests(() => false);
 
     expect(() => enableKeepAwake()).toThrow(/exited before keep-awake was enabled/);
+  });
+});
+
+describe('autostart', () => {
+  it('writes and loads a LaunchAgent plist on enable', () => {
+    const dir = createTempDir();
+    const loaded: string[][] = [];
+    autostartInternals.setPlatformForTests('darwin');
+    autostartInternals.setLaunchAgentsDirForTests(dir);
+    autostartInternals.setExecPathForTests('/usr/local/bin/node');
+    autostartInternals.setDaemonEntryForTests('/opt/openjob/bin/openjob');
+    autostartInternals.setRunLaunchctlForTests((args) => { loaded.push(args); });
+    autostartInternals.setIsLoadedForTests(() => true);
+
+    const state = enableAutostart();
+    const plist = fs.readFileSync(state.plistPath, 'utf8');
+
+    expect(fs.existsSync(state.plistPath)).toBe(true);
+    expect(plist).toContain('<string>/usr/local/bin/node</string>');
+    expect(plist).toContain('<string>daemon</string>');
+    expect(plist).toContain('<key>RunAtLoad</key>');
+    expect(plist).toContain('<key>KeepAlive</key>');
+    expect(loaded.some((a) => a[0] === 'load')).toBe(true);
+    expect(state.enabled).toBe(true);
+    expect(state.loaded).toBe(true);
+  });
+
+  it('removes the plist on disable', () => {
+    const dir = createTempDir();
+    autostartInternals.setPlatformForTests('darwin');
+    autostartInternals.setLaunchAgentsDirForTests(dir);
+    autostartInternals.setRunLaunchctlForTests(() => {});
+    autostartInternals.setIsLoadedForTests(() => false);
+
+    enableAutostart();
+    const state = disableAutostart();
+
+    expect(fs.existsSync(state.plistPath)).toBe(false);
+    expect(state.enabled).toBe(false);
+  });
+
+  it('reports disabled status when no plist exists', () => {
+    const dir = createTempDir();
+    autostartInternals.setLaunchAgentsDirForTests(dir);
+    autostartInternals.setIsLoadedForTests(() => false);
+
+    const state = readAutostartState();
+    expect(state.enabled).toBe(false);
+    expect(state.loaded).toBe(false);
+  });
+
+  it('refuses to enable on non-macOS platforms', () => {
+    autostartInternals.setPlatformForTests('linux');
+    expect(() => enableAutostart()).toThrow(/only supported on macOS/);
   });
 });
 

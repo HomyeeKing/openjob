@@ -144,6 +144,9 @@ npx openjob@latest daemon start
 | `openjob daemon start` | 启动本地任务守护进程 |
 | `openjob daemon stop` | 停止本地任务守护进程 |
 | `openjob daemon status` | 显示守护进程状态 |
+| `openjob autostart enable` | 登录时自动启动守护进程（macOS LaunchAgent） |
+| `openjob autostart disable` | 移除开机自启 |
+| `openjob autostart status` | 显示开机自启状态 |
 | `openjob dashboard` | 打开本地 Web 仪表板 |
 
 ## Job 定义格式

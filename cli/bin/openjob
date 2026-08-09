@@ -9,6 +9,7 @@ const { ensureRegistryState, summarizeJobs, readDaemonState, readRunLog } = requ
 const { executeJob } = require('../lib/executor');
 const { startDaemon, stopDaemon, runLoop, isDaemonAlive } = require('../lib/daemon');
 const { createServer } = require('../lib/dashboard');
+const { enableAutostart, disableAutostart, readAutostartState } = require('../lib/autostart');
 
 const C = {
   reset: '\x1b[0m',
@@ -44,6 +45,9 @@ ${C.bold}COMMANDS${C.reset}
   ${C.cyan}daemon stop${C.reset}         Stop local jobs daemon
   ${C.cyan}daemon restart${C.reset}      Restart local jobs daemon
   ${C.cyan}daemon status${C.reset}       Show daemon status
+  ${C.cyan}autostart enable${C.reset}    Start the daemon automatically on login (macOS LaunchAgent)
+  ${C.cyan}autostart disable${C.reset}   Remove login autostart
+  ${C.cyan}autostart status${C.reset}    Show login autostart status
   ${C.cyan}dashboard${C.reset}           Open local web dashboard
   ${C.cyan}sync${C.reset}                Sync enabled jobs to Claude scheduled_tasks.json
   ${C.cyan}run${C.reset} <name>          Execute a job immediately
@@ -275,6 +279,35 @@ async function main() {
         break;
       }
       console.error(`${C.red}Error:${C.reset} Usage: ${CLI_NAME} daemon <start|stop|restart|status>`);
+      process.exit(1);
+    }
+
+    case 'autostart': {
+      const action = args[1];
+      if (action === 'enable') {
+        const state = enableAutostart();
+        startDaemon();
+        console.log(`${C.green}Autostart enabled${C.reset}`);
+        console.log(`The daemon will start automatically on login and restart if it exits.`);
+        console.log(`plist: ${state.plistPath}`);
+        break;
+      }
+      if (action === 'disable') {
+        const state = disableAutostart();
+        console.log(`${C.yellow}Autostart disabled${C.reset}`);
+        console.log(`plist removed: ${state.plistPath}`);
+        break;
+      }
+      if (action === 'status') {
+        const state = readAutostartState();
+        console.log(`${C.bold}Autostart Status${C.reset}`);
+        console.log(`enabled: ${state.enabled ? `${C.green}yes${C.reset}` : `${C.red}no${C.reset}`}`);
+        console.log(`loaded: ${state.loaded ? `${C.green}yes${C.reset}` : `${C.red}no${C.reset}`}`);
+        console.log(`label: ${state.label}`);
+        console.log(`plist: ${state.plistPath}`);
+        break;
+      }
+      console.error(`${C.red}Error:${C.reset} Usage: ${CLI_NAME} autostart <enable|disable|status>`);
       process.exit(1);
     }
 
