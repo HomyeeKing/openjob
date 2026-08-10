@@ -2,7 +2,7 @@
 export type JobStatus = 'idle' | 'running' | 'success' | 'failed' | 'skipped' | 'missed';
 
 /** 触发方式 */
-export type TriggerType = 'manual' | 'scheduled' | 'dashboard_manual';
+export type TriggerType = 'manual' | 'scheduled' | 'dashboard_manual' | 'wake_recovery';
 
 /** 退出原因 */
 export type ExitReason = 

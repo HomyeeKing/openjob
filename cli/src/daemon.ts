@@ -64,7 +64,7 @@ export function collectMissedJobs(lastHeartbeat: Date, current: Date): Job[] {
   });
 }
 
-export async function markSleepMissedJobs(lastHeartbeat: Date, current: Date): Promise<number> {
+export async function recoverSleepMissedJobs(lastHeartbeat: Date, current: Date): Promise<number> {
   const jobs = collectMissedJobs(lastHeartbeat, current);
   const startedAt = lastHeartbeat.toISOString();
   const finishedAt = current.toISOString();
@@ -90,9 +90,14 @@ export async function markSleepMissedJobs(lastHeartbeat: Date, current: Date): P
       lastStatus: 'missed',
       lastError: 'device_sleep_suspected',
       lastExitReason: 'sleep_missed',
-      nextRun: safeNextRun(currentJob.cron, current),
       history: [...(currentJob.history || []), record].slice(-20)
     }));
+
+    // Record the missed trigger for auditability, then immediately recover it once the machine wakes.
+    const refreshedJob = ensureRegistryState().jobs.find(currentJob => currentJob.name === job.name);
+    if (refreshedJob && refreshedJob.lastStatus !== 'running') {
+      await executeJob(refreshedJob, 'wake_recovery');
+    }
   }
   return jobs.length;
 }
@@ -104,7 +109,7 @@ export async function tick(): Promise<void> {
   const gapMs = lastHeartbeat ? now.getTime() - lastHeartbeat.getTime() : 0;
 
   if (gapMs > SLEEP_GAP_THRESHOLD_MS && lastHeartbeat) {
-    await markSleepMissedJobs(lastHeartbeat, now);
+    await recoverSleepMissedJobs(lastHeartbeat, now);
     writeDaemonState({ lastWakeGapMs: gapMs });
   }
 

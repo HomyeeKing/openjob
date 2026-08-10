@@ -9,6 +9,9 @@ import { parseSource } from '../src/source';
 import { installerInternals } from '../src/installer';
 import { disableKeepAwake, enableKeepAwake, keepAwakeInternals, readKeepAwakeState } from '../src/keepAwake';
 import { autostartInternals, disableAutostart, enableAutostart, readAutostartState } from '../src/autostart';
+import { addJob } from '../src/registry';
+import { ensureRegistryState, readRunLog, updateJob, writeDaemonState } from '../src/state';
+import { recoverSleepMissedJobs } from '../src/daemon';
 
 const tempDirs: string[] = [];
 
@@ -159,7 +162,7 @@ describe('keep awake', () => {
       enabled: false,
       pid: null,
       startedAt: null,
-      lastError: 'keep-awake process is no longer running',
+      lastError: '防休眠进程已退出，点击上方开关可重新启用',
     });
   });
 
@@ -292,5 +295,74 @@ describe('installer internals', () => {
       url: repo,
       subpath: 'missing'
     })).toThrow(/No valid JOB\.md found under "missing"/);
+  });
+});
+
+describe('sleep recovery', () => {
+  it('replays jobs missed during sleep once the machine wakes', async () => {
+    const dir = createTempDir();
+    const home = path.join(dir, 'home');
+    fs.mkdirSync(home, { recursive: true });
+    process.env.HOME = home;
+
+    const jobDir = path.join(dir, 'job');
+    fs.mkdirSync(jobDir, { recursive: true });
+    fs.writeFileSync(path.join(jobDir, 'JOB.md'), `---
+name: wake-recovery-job
+cron: "* * * * *"
+description: wake recovery
+command: printf 'recovered'
+---
+`);
+
+    addJob({
+      name: 'wake-recovery-job',
+      source: path.join(jobDir, 'JOB.md'),
+      sourcePath: path.join(jobDir, 'JOB.md'),
+      cron: '* * * * *',
+      description: 'wake recovery',
+      command: `printf 'recovered'`
+    });
+
+    updateJob('wake-recovery-job', {
+      nextRun: '2026-08-10T08:00:00.000Z',
+      lastStatus: 'idle',
+      history: []
+    });
+
+    writeDaemonState({
+      status: 'running',
+      pid: 123,
+      startedAt: '2026-08-10T07:00:00.000Z',
+      heartbeatAt: '2026-08-10T08:00:00.000Z',
+      lastWakeGapMs: 0
+    });
+
+    const recovered = await recoverSleepMissedJobs(
+      new Date('2026-08-10T08:00:00.000Z'),
+      new Date('2026-08-10T08:02:30.000Z')
+    );
+
+    expect(recovered).toBe(1);
+
+    const registry = ensureRegistryState();
+    const job = registry.jobs.find(item => item.name === 'wake-recovery-job');
+    expect(job).toBeDefined();
+    expect(job?.lastStatus).toBe('success');
+    expect(job?.lastExitReason).toBe('exit:0');
+    expect(job?.lastError).toBeNull();
+    expect(job?.runCount).toBe(1);
+    expect(job?.history).toHaveLength(2);
+    expect(job?.history[0]?.status).toBe('missed');
+    expect(job?.history[0]?.exitReason).toBe('sleep_missed');
+    expect(job?.history[1]?.trigger).toBe('wake_recovery');
+    expect(job?.history[1]?.status).toBe('success');
+
+    const logs = readRunLog('wake-recovery-job', 200);
+    expect(logs.length).toBeGreaterThanOrEqual(2);
+    expect(logs.at(-2)?.status).toBe('missed');
+    expect(logs.at(-2)?.exitReason).toBe('sleep_missed');
+    expect(logs.at(-1)?.trigger).toBe('wake_recovery');
+    expect(logs.at(-1)?.status).toBe('success');
   });
 });
