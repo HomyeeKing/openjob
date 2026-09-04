@@ -24,17 +24,14 @@ Jobs is an **Out of loop** scheduled task system that enables AI to execute task
 ## Repository Structure
 
 ```
-jobs/
+openjob/
 ├── README.md                 # This document
 ├── README.zh.md              # Chinese version
+├── cli/                      # openjob CLI (published npm package)
+├── skills/                   # Skills (job-creator, jobs-scheduler)
 ├── spec/
 │   └── jobs-spec.md          # Jobs specification
-├── template/
-│   └── JOB.md                # Job template
-├── jobs/                     # Example Jobs
-│   ├── npm-global-update/
-│   ├── claude-news-collect/
-│   └── todo-night-executor/
+├── website/                  # Documentation site
 └── .claude-plugin/
     └── marketplace.json      # Claude Code plugin configuration
 ```
