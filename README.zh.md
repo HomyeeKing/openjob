@@ -24,17 +24,14 @@ Jobs 是 **Out of loop** 的定时任务系统，让 AI 能够在 Agent Loop 之
 ## 仓库结构
 
 ```
-jobs/
+openjob/
 ├── README.md                 # 英文文档
 ├── README.zh.md              # 本文档（中文）
+├── cli/                      # openjob CLI（发布的 npm 包）
+├── skills/                   # Skills（job-creator、jobs-scheduler）
 ├── spec/
 │   └── jobs-spec.md          # Jobs 规范定义
-├── template/
-│   └── JOB.md                # Job 模板
-├── jobs/                     # 示例 Jobs
-│   ├── npm-global-update/
-│   ├── claude-news-collect/
-│   └── todo-night-executor/
+├── website/                  # 文档站点
 └── .claude-plugin/
     └── marketplace.json      # Claude Code 插件配置
 ```
