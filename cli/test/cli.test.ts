@@ -105,6 +105,24 @@ describe('parseSource', () => {
       input: './docs/page.md#anchor'
     });
   });
+
+  it('drops a subpath that contains "." or ".." path segments', () => {
+    expect(parseSource('owner/repo/../etc/passwd')).toMatchObject({
+      type: 'github',
+      url: 'https://github.com/owner/repo.git',
+      subpath: undefined
+    });
+    expect(parseSource('owner/repo/./jobs/foo')).toMatchObject({
+      type: 'github',
+      url: 'https://github.com/owner/repo.git',
+      subpath: undefined
+    });
+    expect(parseSource('owner/repo/jobs/foo')).toMatchObject({
+      type: 'github',
+      url: 'https://github.com/owner/repo.git',
+      subpath: 'jobs/foo'
+    });
+  });
 });
 
 describe('registry paths', () => {
