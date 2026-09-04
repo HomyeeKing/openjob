@@ -469,3 +469,5 @@ npx openjob@latest sync
 - [Jobs Over Skills](https://homyzone.pages.dev/blogs/aigc/jobs-over-skills)
 
 Core insight: **Scheduled tasks are an important way to achieve automation and autonomous evolution.**
+
+<!-- Verified PR pipeline via Multica agent (HOM-22). -->
