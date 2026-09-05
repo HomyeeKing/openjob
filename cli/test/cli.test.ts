@@ -12,6 +12,7 @@ import { autostartInternals, disableAutostart, enableAutostart, readAutostartSta
 import { addJob } from '../src/registry';
 import { ensureRegistryState, readRunLog, updateJob, writeDaemonState } from '../src/state';
 import { recoverSleepMissedJobs } from '../src/daemon';
+import { parseJob } from '../src/parser';
 
 const tempDirs: string[] = [];
 
@@ -104,6 +105,31 @@ describe('parseSource', () => {
       type: 'local',
       input: './docs/page.md#anchor'
     });
+  });
+});
+
+describe('parseJob', () => {
+  it.each([
+    ['name', '   '],
+    ['cron', 123],
+    ['description', ['invalid']],
+  ])('rejects an invalid required %s field', (field, value) => {
+    const dir = createTempDir();
+    const jobPath = path.join(dir, 'JOB.md');
+    const frontmatter = {
+      name: 'valid-name',
+      cron: '0 9 * * *',
+      description: 'valid description',
+      [field]: value,
+    };
+    fs.writeFileSync(jobPath, `---
+${Object.entries(frontmatter).map(([key, item]) => `${key}: ${JSON.stringify(item)}`).join('\n')}
+---
+
+# Invalid field
+`);
+
+    expect(() => parseJob(jobPath)).toThrow(`Missing or invalid required field: ${field}`);
   });
 });
 
