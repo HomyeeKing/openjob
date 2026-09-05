@@ -1,4 +1,5 @@
 # Jobs
+<!-- Multica PR sidebar verification -->
 
 Jobs is an **Out of loop** scheduled task system that enables AI to execute tasks continuously and automatically outside the Agent Loop.
 
