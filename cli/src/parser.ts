@@ -10,9 +10,11 @@ export function parseJob(filePath: string): JobDefinition {
   const { data, content } = matter(raw);
 
   // Validate required fields
-  if (!data.name) throw new Error('Missing required field: name');
-  if (!data.cron) throw new Error('Missing required field: cron');
-  if (!data.description) throw new Error('Missing required field: description');
+  for (const field of ['name', 'cron', 'description'] as const) {
+    if (typeof data[field] !== 'string' || data[field].trim() === '') {
+      throw new Error(`Missing or invalid required field: ${field}`);
+    }
+  }
 
   // Validate cron expression
   try { 
